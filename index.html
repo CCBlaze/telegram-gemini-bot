@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>FusionGPT 💡 - Веб-чат</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .chat-container { background-color: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 400px; height: 600px; display: flex; flex-direction: column; }
+        .chat-header { padding: 15px; background-color: #007bff; color: white; border-top-left-radius: 10px; border-top-right-radius: 10px; text-align: center; }
+        .chat-messages { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; }
+        .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 15px; max-width: 80%; }
+        .user-message { align-self: flex-end; background-color: #dcf8c6; }
+        .ai-message { align-self: flex-start; background-color: #e6e6e6; }
+        .chat-input { display: flex; padding: 10px; border-top: 1px solid #ddd; }
+        .chat-input input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; margin-right: 10px; }
+        .chat-input button { padding: 10px 15px; border: none; background-color: #007bff; color: white; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">FusionGPT 💡</div>
+        <div id="chatbox" class="chat-messages">
+            <div class="message ai-message">Привет! Я FusionGPT, задайте мне вопрос!</div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="userInput" placeholder="Ваше сообщение...">
+            <button onclick="sendMessage()">Отправить</button>
+        </div>
+    </div>
+
+    <script>
+        function sendMessage() {
+            const inputField = document.getElementById('userInput');
+            const userText = inputField.value;
+            if (userText === '') return;
+
+            const chatbox = document.getElementById('chatbox');
+            
+            // 1. Отобразить сообщение пользователя
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user-message';
+            userMsg.textContent = userText;
+            chatbox.appendChild(userMsg);
+            
+            // 2. Отобразить заглушку для ИИ
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'message ai-message';
+            loadingMsg.textContent = 'FusionGPT печатает...';
+            chatbox.appendChild(loadingMsg);
+            chatbox.scrollTop = chatbox.scrollHeight; // Прокрутка вниз
+
+            inputField.value = ''; // Очистить ввод
+
+            // 3. Отправить запрос на сервер Flask
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: userText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 4. Обновить сообщение ИИ
+                loadingMsg.textContent = data.response;
+                loadingMsg.className = 'message ai-message'; // Убрать "печатает"
+                chatbox.scrollTop = chatbox.scrollHeight;
+            })
+            .catch(error => {
+                loadingMsg.textContent = 'Ошибка: Не удалось связаться с сервером.';
+                console.error('Fetch error:', error);
+            });
+        }
+
+        // Отправка по Enter
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
