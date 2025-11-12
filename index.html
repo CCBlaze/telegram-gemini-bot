@@ -2,79 +2,121 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FusionGPT 💡 - Веб-чат</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .chat-container { background-color: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 400px; height: 600px; display: flex; flex-direction: column; }
-        .chat-header { padding: 15px; background-color: #007bff; color: white; border-top-left-radius: 10px; border-top-right-radius: 10px; text-align: center; }
-        .chat-messages { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; }
-        .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 15px; max-width: 80%; }
-        .user-message { align-self: flex-end; background-color: #dcf8c6; }
-        .ai-message { align-self: flex-start; background-color: #e6e6e6; }
-        .chat-input { display: flex; padding: 10px; border-top: 1px solid #ddd; }
-        .chat-input input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; margin-right: 10px; }
-        .chat-input button { padding: 10px 15px; border: none; background-color: #007bff; color: white; border-radius: 20px; cursor: pointer; }
+        /* Стиль для прокрутки, чтобы скрыть стандартный скроллбар */
+        .chat-messages {
+            max-height: 500px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .chat-messages::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
-<body>
-    <div class="chat-container">
-        <div class="chat-header">FusionGPT 💡</div>
-        <div id="chatbox" class="chat-messages">
-            <div class="message ai-message">Привет! Я FusionGPT, задайте мне вопрос!</div>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4" style="font-family: 'Inter', sans-serif;">
+
+    <div class="chat-container bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col h-[80vh] min-h-[500px]">
+        
+        <div class="chat-header bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 rounded-t-xl text-center shadow-lg">
+            <h1 class="text-2xl font-bold">FusionGPT 💡</h1>
+            <p class="text-sm opacity-80">Ваш помощник на базе Google Gemini</p>
         </div>
-        <div class="chat-input">
-            <input type="text" id="userInput" placeholder="Ваше сообщение...">
-            <button onclick="sendMessage()">Отправить</button>
+
+        <div id="chatbox" class="chat-messages flex-grow p-4 space-y-4">
+            <div class="flex justify-start">
+                <div class="message ai-message bg-gray-200 text-gray-800 p-3 rounded-xl max-w-[80%] shadow-md">
+                    Привет! Я FusionGPT, задайте мне вопрос, и я отвечу мгновенно!
+                </div>
+            </div>
+            </div>
+
+        <div class="chat-input flex p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+            <input type="text" id="userInput" placeholder="Ваше сообщение..." class="flex-grow p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150">
+            <button onclick="sendMessage()" class="ml-3 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full font-semibold shadow-lg transition duration-150 transform hover:scale-105 active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                    <path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.173H10.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.173a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.405Z" />
+                </svg>
+            </button>
         </div>
     </div>
 
     <script>
-        function sendMessage() {
+        // Функция для добавления нового сообщения в чат
+        function appendMessage(text, isUser, isTemporary = false) {
+            const chatbox = document.getElementById('chatbox');
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = isUser ? 'flex justify-end' : 'flex justify-start';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message p-3 rounded-xl max-w-[80%] shadow-md ${isUser ? 'user-message bg-blue-500 text-white' : 'ai-message bg-gray-200 text-gray-800'}`;
+            messageDiv.textContent = text;
+            
+            if (isTemporary) {
+                messageDiv.id = 'loading-indicator';
+            }
+
+            messageWrapper.appendChild(messageDiv);
+            chatbox.appendChild(messageWrapper);
+            chatbox.scrollTop = chatbox.scrollHeight; // Прокрутка вниз
+            return messageDiv;
+        }
+
+        async function sendMessage() {
             const inputField = document.getElementById('userInput');
-            const userText = inputField.value;
+            const userText = inputField.value.trim();
             if (userText === '') return;
 
-            const chatbox = document.getElementById('chatbox');
-            
             // 1. Отобразить сообщение пользователя
-            const userMsg = document.createElement('div');
-            userMsg.className = 'message user-message';
-            userMsg.textContent = userText;
-            chatbox.appendChild(userMsg);
+            appendMessage(userText, true);
             
             // 2. Отобразить заглушку для ИИ
-            const loadingMsg = document.createElement('div');
-            loadingMsg.className = 'message ai-message';
-            loadingMsg.textContent = 'FusionGPT печатает...';
-            chatbox.appendChild(loadingMsg);
-            chatbox.scrollTop = chatbox.scrollHeight; // Прокрутка вниз
-
             inputField.value = ''; // Очистить ввод
+            inputField.disabled = true; // Блокируем ввод
+            const loadingMsgElement = appendMessage('FusionGPT печатает...', false, true);
 
-            // 3. Отправить запрос на сервер Flask
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message: userText })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // 4. Обновить сообщение ИИ
-                loadingMsg.textContent = data.response;
-                loadingMsg.className = 'message ai-message'; // Убрать "печатает"
-                chatbox.scrollTop = chatbox.scrollHeight;
-            })
-            .catch(error => {
-                loadingMsg.textContent = 'Ошибка: Не удалось связаться с сервером.';
+            // *** ИСПРАВЛЕНИЕ: ДОБАВЛЕН ПОЛНЫЙ АДРЕС RENDER ***
+            // Вам нужно заменить этот адрес на свой!
+            const RENDER_URL = 'https://telegram-gemini-bot-b3x4.onrender.com';
+            // **********************************************
+
+            try {
+                // 3. Отправить запрос на сервер Render, используя полный URL
+                const response = await fetch(RENDER_URL + '/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: userText })
+                });
+
+                const data = await response.json();
+                
+                // 4. Обновить заглушку с ответом ИИ
+                loadingMsgElement.textContent = data.response;
+                loadingMsgElement.classList.remove('bg-gray-200');
+                loadingMsgElement.classList.add('bg-gray-100'); // Финальный стиль
+                loadingMsgElement.removeAttribute('id'); // Удаляем ID заглушки
+
+            } catch (error) {
+                loadingMsgElement.textContent = 'Ошибка: Не удалось связаться с сервером.';
                 console.error('Fetch error:', error);
-            });
+                
+            } finally {
+                inputField.disabled = false; // Разблокируем ввод
+                inputField.focus(); // Фокус на поле ввода
+                document.getElementById('chatbox').scrollTop = document.getElementById('chatbox').scrollHeight;
+            }
         }
 
         // Отправка по Enter
         document.getElementById('userInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // Предотвратить новую строку
                 sendMessage();
             }
         });
