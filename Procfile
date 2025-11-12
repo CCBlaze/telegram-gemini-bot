@@ -1,1 +1,1 @@
-web: gunicorn aichat:app
+web: gunicorn Gemini_telegram_bot:app
